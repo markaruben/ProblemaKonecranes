@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicles</title>
+    <style>
+        #vehicleContainer {
+            width: 100%;
+            height: 500px;
+            border: 1px solid #000;
+            position: relative;
+            margin-bottom: 20px;
+            background: black;
+        }
+        .vehicle {
+            width: 40px;
+            height: 40px;
+            position: absolute;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 12px;
+        }
+
+        .control-panel {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .control-panel button, .control-panel div {
+            margin: 5px auto;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+<div id="vehicleContainer"></div>
+
+<div class="control-panel">
+    <h3>Controls</h3>
+    <button onclick="addVehicle()">Add Vehicle</button>
+    <button onclick="toggleUpdateDirectionForm()">Update Vehicle Direction</button>
+    <button onclick="startAllVehicles()">Start All Vehicles</button>
+    <button onclick="stopAllVehicles()">Stop All Vehicles</button>
+    <div id="updateDirectionForm" style="display:none;">
+        <label for="vehicleId">Vehicle ID:</label>
+        <input type="number" id="vehicleId" name="vehicleId">
+        <label for="newDirection">New Direction:</label>
+        <input type="number" id="newDirection" name="newDirection">
+        <button onclick="submitUpdateDirection()">Submit</button>
+    </div>
+</div>
+
+<script>
+
+    //JS Methods used to make requests from the backend
+    //Fetch the vehicles
+    async function fetchVehicles() {
+        const response = await fetch('/api/vehicles');
+        const vehicles = await response.json();
+        return vehicles;
+    }
+
+    //Update position of the vehicles
+    function updateVehiclePositions(vehicles) {
+        const container = document.getElementById('vehicleContainer');
+        container.innerHTML = '';
+        vehicles.forEach(vehicle => {
+            const vehicleDiv = document.createElement('div');
+            vehicleDiv.className = 'vehicle';
+            vehicleDiv.style.left = `${vehicle.x}px`;
+            vehicleDiv.style.top = `${vehicle.y}px`;
+            vehicleDiv.style.backgroundColor = `rgb(${vehicle.color.red}, ${vehicle.color.green}, ${vehicle.color.blue})`;
+            vehicleDiv.innerHTML = `${vehicle.id}`;
+            container.appendChild(vehicleDiv);
+        });
+    }
+
+    //Update display with new vehicle positions
+    async function updateDashboard() {
+        const vehicles = await fetchVehicles();
+        updateVehiclePositions(vehicles);
+    }
+
+    // Add a vehicle
+    function addVehicle() {
+        fetch(`/api/vehicles/add`, {
+            method: 'POST'
+        }).then(() => updateDashboard());
+    }
+
+    // Show/hide the form for updating the direction
+    function toggleUpdateDirectionForm() {
+        const form = document.getElementById('updateDirectionForm');
+        form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    }
+
+    //Update the direction of a vehicle
+    function submitUpdateDirection() {
+        const id = document.getElementById('vehicleId').value;
+        const direction = document.getElementById('newDirection').value;
+
+        fetch(`/api/vehicles/${id}/direction?direction=${direction}`, {
+            method: 'PUT'
+        }).then(() => {
+            updateDashboard();
+            toggleUpdateDirectionForm();
+        });
+    }
+
+    //Start all vehicles
+    function startAllVehicles() {
+        fetch('/api/vehicles/start', {
+            method: 'POST'
+        }).then(() => updateDashboard());
+    }
+
+    // Stop all vehicles
+    function stopAllVehicles() {
+        fetch('/api/vehicles/stop', {
+            method: 'POST'
+        }).then(() => updateDashboard());
+    }
+
+    // Update dashboard every second
+    setInterval(updateDashboard, 1000);
+</script>
+</body>
+</html>
